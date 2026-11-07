@@ -183,3 +183,4 @@ cython_debug/
 # Others
 agents.md
 .env.example
+test.xlsx

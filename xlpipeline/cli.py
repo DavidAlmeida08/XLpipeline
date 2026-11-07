@@ -27,24 +27,45 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
+    #Validate Excel file path
+    if not args.excel_file.exists() or not args.excel_file.is_file():
+        print(f"Error: The specified Excel file '{args.excel_file}' does not exist")
+        return 1
+    if args.excel_file.suffix.lower() not in {".xls", ".xlsx"}:
+        print(f"Error: The specified file '{args.excel_file}' is not a valid Excel file")
+        return 1
+
     # Initialize connection
     conn = init_db_connection()
 
     # Inspect target table
     target_table = args.target_table if args.target_table else args.excel_file.stem
     table_df = inspect_target_table(conn, target_table)
-    if table_df.empty:
-        print(f"Table '{target_table}' is empty or does not exist.")
+
+    # Table is empty(inspect_target_table returns empty DataFrame if table does not exist)
+    if table_df is None:
+        print(f"Table '{target_table}' does not exist.")
         if not proceed_operation(f"create table '{target_table}' and insert data from '{args.excel_file}'"):
             print("Operation cancelled.")
             conn.close()
             return 1
+        
         print(f"Creating table '{target_table}' and inserting data from '{args.excel_file}'...")
+        if not create_table(conn, target_table, table_df):
+            conn.close()
+            return 1
+        return 0
+
+    # Table exists
+    print("Table found")
 
     # Close Connection
     conn.close()
-
     return 0
+
+
+def handle_empty_table() -> None:
+    pass
 
 
 def proceed_operation(operation_name: str) -> bool:
@@ -54,7 +75,6 @@ def proceed_operation(operation_name: str) -> bool:
         bool: True if the user confirms, False otherwise.
     """
     while True:
-        print()
         response = input(f"Do you want to proceed with {operation_name}? (y/n): ").strip().lower()
         if response in {"y", "yes"}:
             return True
@@ -62,3 +82,4 @@ def proceed_operation(operation_name: str) -> bool:
             return False
         else:
             print("Invalid input. Please enter 'y' or 'n'.")
+    

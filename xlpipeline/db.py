@@ -59,7 +59,7 @@ def inspect_target_table(conn: Connection | Engine, table_name: str) -> pd.DataF
         table_name: Name of the target table to inspect.
 
     Returns:
-        pd.DataFrame: DataFrame containing the table's contents, or an empty DataFrame if the table does not exist.
+        pd.DataFrame: DataFrame containing the table's contents, or None if the table does not exist.
     """
     try:
         df = pd.read_sql_query(text(f"SELECT * FROM {table_name};"), conn)
@@ -69,5 +69,28 @@ def inspect_target_table(conn: Connection | Engine, table_name: str) -> pd.DataF
         if hasattr(conn, "rollback"):
             conn.rollback()
         print(f"Error inspecting table {table_name} {':' + str(error.orig) if hasattr(error, 'orig') else ''}")
+        
+    return None
 
-    return pd.DataFrame()
+def create_table(conn: Connection | Engine, table_name: str, df: pd.DataFrame) -> bool:
+    """Create a new table in the database based on the DataFrame's structure.
+
+    Args:
+        conn: Active database connection or engine.
+        table_name: Name of the table to create.
+        df: DataFrame whose structure will be used to create the table.
+    """
+
+    if df is None:
+        df = pd.DataFrame()
+
+    try:
+        df.head(0).to_sql(table_name, conn, if_exists='fail', index=False)
+        print(f"Table '{table_name}' created successfully.")
+        return True
+
+    except Exception as error:
+        if hasattr(conn, "rollback"):
+            conn.rollback()
+        print(f"Error creating table {table_name} {':' + str(error.orig) if hasattr(error, 'orig') else ''}")
+        return False

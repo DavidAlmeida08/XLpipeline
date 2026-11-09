@@ -20,7 +20,7 @@ def main(argv: list[str] | None = None) -> int:
         description="Read Excel files into a postgres database.",
     )
     parser.add_argument("excel_file", type=Path, help="Path to the Excel file to read")
-    parser.add_argument(
+    parser.add_argument( 
         "--target-table", type=str, default=None, 
         help="Name of the target table in the database. If not provided, the table name " \
         "will be derived from the Excel file name."
@@ -40,10 +40,10 @@ def main(argv: list[str] | None = None) -> int:
 
     # Inspect target table
     target_table = args.target_table if args.target_table else args.excel_file.stem
-    table_df = inspect_target_table(conn, target_table)
+    postgres_df = inspect_target_table(conn, target_table)
 
     # Table is empty(inspect_target_table returns empty DataFrame if table does not exist)
-    if table_df is None:
+    if postgres_df is None:
         print(f"Table '{target_table}' does not exist.")
         if not proceed_operation(f"create table '{target_table}' and insert data from '{args.excel_file}'"):
             print("Operation cancelled.")
@@ -51,7 +51,8 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         
         print(f"Creating table '{target_table}' and inserting data from '{args.excel_file}'...")
-        if not create_table(conn, target_table, table_df):
+        excel_data = pd.read_excel(args.excel_file, index_col=0)
+        if not create_table(conn, target_table, excel_data):
             conn.close()
             return 1
         return 0
@@ -59,13 +60,10 @@ def main(argv: list[str] | None = None) -> int:
     # Table exists
     print("Table found")
 
+  
     # Close Connection
     conn.close()
     return 0
-
-
-def handle_empty_table() -> None:
-    pass
 
 
 def proceed_operation(operation_name: str) -> bool:

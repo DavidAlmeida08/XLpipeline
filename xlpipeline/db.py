@@ -69,8 +69,9 @@ def inspect_target_table(conn: Connection | Engine, table_name: str) -> pd.DataF
         if hasattr(conn, "rollback"):
             conn.rollback()
         print(f"Error inspecting table {table_name} {':' + str(error.orig) if hasattr(error, 'orig') else ''}")
-        
+
     return None
+
 
 def create_table(conn: Connection | Engine, table_name: str, df: pd.DataFrame) -> bool:
     """Create a new table in the database based on the DataFrame's structure.
@@ -81,11 +82,12 @@ def create_table(conn: Connection | Engine, table_name: str, df: pd.DataFrame) -
         df: DataFrame whose structure will be used to create the table.
     """
 
+    print(df)
     if df is None:
         df = pd.DataFrame()
 
     try:
-        df.head(0).to_sql(table_name, conn, if_exists='fail', index=False)
+        df.to_sql(table_name, conn, if_exists='fail', index=False)
         print(f"Table '{table_name}' created successfully.")
         return True
 
@@ -94,3 +96,7 @@ def create_table(conn: Connection | Engine, table_name: str, df: pd.DataFrame) -
             conn.rollback()
         print(f"Error creating table {table_name} {':' + str(error.orig) if hasattr(error, 'orig') else ''}")
         return False
+
+
+def update_table(conn: Connection | Engine, table_name: str, df: pd.DataFrame) -> bool:
+    pass

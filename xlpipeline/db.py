@@ -82,12 +82,13 @@ def create_table(conn: Connection | Engine, table_name: str, df: pd.DataFrame) -
         df: DataFrame whose structure will be used to create the table.
     """
 
-    print(df)
     if df is None:
         df = pd.DataFrame()
 
     try:
         df.to_sql(table_name, conn, if_exists='fail', index=False)
+        if hasattr(conn, "commit"):
+                   conn.commit()
         print(f"Table '{table_name}' created successfully.")
         return True
 
@@ -99,4 +100,26 @@ def create_table(conn: Connection | Engine, table_name: str, df: pd.DataFrame) -
 
 
 def update_table(conn: Connection | Engine, table_name: str, df: pd.DataFrame) -> bool:
-    pass
+    """Update a table in the database based on the DataFrame's structure
+
+    Args:
+        conn: Active database connection or engine.
+        table_name: Name of the table to create.
+        df: DataFrame whose structure will be used to update the table.
+    """
+    try:
+        df.to_sql(table_name, conn, if_exists="replace", index=False)
+        if hasattr(conn, "commit"):
+            conn.commit()
+        print(f"Table '{table_name}' updated successfully.")
+        return True
+    
+    except Exception as error:
+        if hasattr(conn, "rollback"):
+            conn.rollback()
+        print(f"Error updating table {table_name} {':' + str(error.orig) if hasattr(error, 'orig') else ''}")
+        return False
+
+
+
+    

@@ -40,6 +40,7 @@ def main(argv: list[str] | None = None) -> int:
 
     # Inspect target table
     target_table = args.target_table if args.target_table else args.excel_file.stem
+    excel_data = pd.read_excel(args.excel_file, index_col=0)
     postgres_df = inspect_target_table(conn, target_table)
 
     # Table is empty(inspect_target_table returns empty DataFrame if table does not exist)
@@ -51,7 +52,6 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         
         print(f"Creating table '{target_table}' and inserting data from '{args.excel_file}'...")
-        excel_data = pd.read_excel(args.excel_file, index_col=0)
         if not create_table(conn, target_table, excel_data):
             conn.close()
             return 1
@@ -59,7 +59,9 @@ def main(argv: list[str] | None = None) -> int:
 
     # Table exists
     print("Table found")
-
+    if not update_table(conn, target_table, excel_data):
+        conn.close()
+        return 1
   
     # Close Connection
     conn.close()

@@ -3,6 +3,7 @@ from pathlib import Path
 import pandas as pd
 
 from .db import *
+from .metrics import *
 
 def main(argv: list[str] | None = None) -> int:
     """Execute the XLpipeline CLI application.
@@ -25,6 +26,7 @@ def main(argv: list[str] | None = None) -> int:
         help="Name of the target table in the database. If not provided, the table name " \
         "will be derived from the Excel file name."
     )
+    parser.add_argument("--metrics", action="store_true", help="Enable detailed output")
     args = parser.parse_args(argv)
 
     #Validate Excel file path
@@ -40,32 +42,30 @@ def main(argv: list[str] | None = None) -> int:
 
     # Inspect target table
     target_table = args.target_table if args.target_table else args.excel_file.stem
-    excel_data = pd.read_excel(args.excel_file, index_col=0)
+    excel_data = pd.read_excel(args.excel_file)
     postgres_df = inspect_target_table(conn, target_table)
 
-    # Table is empty(inspect_target_table returns empty DataFrame if table does not exist)
+    # Metrics
+    if args.metrics:
+        benchmark_pipeline(conn, args.excel_file)
+        return 0
+
     if postgres_df is None:
         print(f"Table '{target_table}' does not exist.")
         if not proceed_operation(f"create table '{target_table}' and insert data from '{args.excel_file}'"):
             print("Operation cancelled.")
             conn.close()
             return 1
-        
-        print(f"Creating table '{target_table}' and inserting data from '{args.excel_file}'...")
-        if not create_table(conn, target_table, excel_data):
-            conn.close()
-            return 1
-        return 0
+        print(f"Creating table '{target_table}' and inserting data...")
+    else: 
+        if "is_active" in postgres_df.columns:
+            convert_is_active(postgres_df, excel_data)
+        print(f"Table '{target_table}' found. Appending data...")
 
-    # Table exists
-    print("Table found")
-    if not update_table(conn, target_table, excel_data):
-        conn.close()
-        return 1
-  
-    # Close Connection
+    # Load into database and confirm sucess
+    success = load_dataframe_to_table(conn, target_table, excel_data)
     conn.close()
-    return 0
+    return 0 if success else 1
 
 
 def proceed_operation(operation_name: str) -> bool:
@@ -82,4 +82,16 @@ def proceed_operation(operation_name: str) -> bool:
             return False
         else:
             print("Invalid input. Please enter 'y' or 'n'.")
+
+
+def convert_is_active(postgres_df: pd.DataFrame, excel_data: pd.DataFrame) -> None:
+    """Convert 'is_active' to float if the existing database column is numeric.
+
+    Args:
+        postgres_df: DataFrame representing the existing PostgreSQL table schema.
+        excel_data: DataFrame containing the Excel data to be inserted.
+    """
+    if "is_active" in excel_data.columns:
+        if postgres_df["is_active"].dtype in ["float64", "float32", "int64", "int32"]:
+            excel_data["is_active"] = excel_data["is_active"].astype(float)
     

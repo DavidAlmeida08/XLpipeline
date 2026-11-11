@@ -1,3 +1,4 @@
+from typing import Literal
 import pandas as pd
 from sqlalchemy import Connection, Engine, create_engine, text
 from sqlalchemy.engine import URL
@@ -69,57 +70,47 @@ def inspect_target_table(conn: Connection | Engine, table_name: str) -> pd.DataF
         if hasattr(conn, "rollback"):
             conn.rollback()
         print(f"Error inspecting table {table_name} {':' + str(error.orig) if hasattr(error, 'orig') else ''}")
+        return None
 
-    return None
 
-
-def create_table(conn: Connection | Engine, table_name: str, df: pd.DataFrame) -> bool:
-    """Create a new table in the database based on the DataFrame's structure.
-
+def load_dataframe_to_table(
+    conn: Connection | Engine,
+    table_name: str,
+    df: pd.DataFrame,
+    if_exists: Literal["append", "replace", "fail"] = "append",
+    chunksize: int | None = 1000,
+) -> bool:
+    """Load a DataFrame into a PostgreSQL table (creates table if missing or appends if present).
     Args:
-        conn: Active database connection or engine.
-        table_name: Name of the table to create.
-        df: DataFrame whose structure will be used to create the table.
+        conn: Active SQLAlchemy connection or engine.
+        table_name: Name of the target table.
+        df: DataFrame containing the records to insert.
+        if_exists: Behavior if table exists ('append', 'replace', or 'fail'). Defaults to 'append'.
+        chunksize: Number of rows to write at a time. Defaults to 1000.
+    Returns:
+        bool: True if operation succeeded, False otherwise.
     """
-
-    if df is None:
-        df = pd.DataFrame()
-
-    try:
-        df.to_sql(table_name, conn, if_exists='fail', index=False)
-        if hasattr(conn, "commit"):
-                   conn.commit()
-        print(f"Table '{table_name}' created successfully.")
-        return True
-
-    except Exception as error:
-        if hasattr(conn, "rollback"):
-            conn.rollback()
-        print(f"Error creating table {table_name} {':' + str(error.orig) if hasattr(error, 'orig') else ''}")
+    if df is None or df.empty:
+        print("Warning: DataFrame is empty. No records to load.")
         return False
-
-
-def update_table(conn: Connection | Engine, table_name: str, df: pd.DataFrame) -> bool:
-    """Update a table in the database based on the DataFrame's structure
-
-    Args:
-        conn: Active database connection or engine.
-        table_name: Name of the table to create.
-        df: DataFrame whose structure will be used to update the table.
-    """
     try:
-        df.to_sql(table_name, conn, if_exists="replace", index=False)
+        df.to_sql(
+            table_name,
+            conn,
+            if_exists=if_exists,
+            index=False,
+            chunksize=chunksize,
+            method="multi",
+        )
         if hasattr(conn, "commit"):
             conn.commit()
-        print(f"Table '{table_name}' updated successfully.")
+        print(f"Successfully loaded {len(df)} rows into table '{table_name}'.")
         return True
     
     except Exception as error:
         if hasattr(conn, "rollback"):
             conn.rollback()
-        print(f"Error updating table {table_name} {':' + str(error.orig) if hasattr(error, 'orig') else ''}")
+        err_msg = getattr(error, "orig", error)
+        print(f"Error loading data into table '{table_name}': {err_msg}")
         return False
-
-
-
     

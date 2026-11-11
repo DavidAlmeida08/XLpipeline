@@ -1,8 +1,11 @@
 import argparse
 from pathlib import Path
 import pandas as pd
+from xlsx2csv import Xlsx2csv
+import io
 
 from .db import *
+from .utils import *
 from .metrics import *
 
 def main(argv: list[str] | None = None) -> int:
@@ -56,7 +59,7 @@ def main(argv: list[str] | None = None) -> int:
     
     # Inspect target table
     target_table = args.target_table if args.target_table else args.excel_file.stem
-    excel_data = pd.read_excel(args.excel_file)
+    excel_data = get_excel_data(args.excel_file)
     postgres_df = inspect_target_table(conn, target_table)
 
     if postgres_df is None:
@@ -91,18 +94,6 @@ def proceed_operation(operation_name: str) -> bool:
             return False
         else:
             print("Invalid input. Please enter 'y' or 'n'.")
-
-
-def convert_is_active(postgres_df: pd.DataFrame, excel_data: pd.DataFrame) -> None:
-    """Convert 'is_active' to float if the existing database column is numeric.
-
-    Args:
-        postgres_df: DataFrame representing the existing PostgreSQL table schema.
-        excel_data: DataFrame containing the Excel data to be inserted.
-    """
-    if "is_active" in excel_data.columns:
-        if postgres_df["is_active"].dtype in ["float64", "float32", "int64", "int32"]:
-            excel_data["is_active"] = excel_data["is_active"].astype(float)
 
 
 def run_metrics() -> None:

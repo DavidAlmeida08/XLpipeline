@@ -7,6 +7,7 @@ from sqlalchemy import Connection, Engine
 
 from .config import METRICS_TABLE_NAME, EXCEL_PATH
 from .db import load_dataframe_to_table
+from .utils import *
 
 
 def benchmark_pipeline(conn: Connection | Engine) -> dict[str, float]:
@@ -25,7 +26,7 @@ def benchmark_pipeline(conn: Connection | Engine) -> dict[str, float]:
 
     # 1. Measure Excel reading time
     t0 = time.perf_counter()
-    df = pd.read_excel(EXCEL_PATH)
+    df = get_excel_data(EXCEL_PATH)
     t_parse = time.perf_counter() - t0
 
     num_rows = len(df)

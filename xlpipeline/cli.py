@@ -20,16 +20,30 @@ def main(argv: list[str] | None = None) -> int:
         prog="xlpipeline",
         description="Read Excel files into a postgres database.",
     )
-    parser.add_argument("excel_file", type=Path, help="Path to the Excel file to read")
+    parser.add_argument(
+        "-f", "--excel_file", 
+        type=Path, help="Path to the Excel file to read")
     parser.add_argument( 
-        "--target-table", type=str, default=None, 
+        "-t", "--target-table", 
+        type=str, default=None, 
         help="Name of the target table in the database. If not provided, the table name " \
         "will be derived from the Excel file name."
     )
-    parser.add_argument("--metrics", action="store_true", help="Enable detailed output")
+    parser.add_argument(
+        "-m", "--metrics", 
+        action="store_true", help="Enable detailed output"
+    )
     args = parser.parse_args(argv)
 
+    # Metrics
+    if args.metrics:
+        run_metrics()
+        return 0
+
     #Validate Excel file path
+    if not args.excel_file:
+        print("Error: An Excel file path is required. Use -f <file> or --excel_file <file>.")
+        return 1
     if not args.excel_file.exists() or not args.excel_file.is_file():
         print(f"Error: The specified Excel file '{args.excel_file}' does not exist")
         return 1
@@ -39,16 +53,11 @@ def main(argv: list[str] | None = None) -> int:
 
     # Initialize connection
     conn = init_db_connection()
-
+    
     # Inspect target table
     target_table = args.target_table if args.target_table else args.excel_file.stem
     excel_data = pd.read_excel(args.excel_file)
     postgres_df = inspect_target_table(conn, target_table)
-
-    # Metrics
-    if args.metrics:
-        benchmark_pipeline(conn, args.excel_file)
-        return 0
 
     if postgres_df is None:
         print(f"Table '{target_table}' does not exist.")
@@ -94,4 +103,11 @@ def convert_is_active(postgres_df: pd.DataFrame, excel_data: pd.DataFrame) -> No
     if "is_active" in excel_data.columns:
         if postgres_df["is_active"].dtype in ["float64", "float32", "int64", "int32"]:
             excel_data["is_active"] = excel_data["is_active"].astype(float)
+
+
+def run_metrics() -> None:
+    conn = init_db_connection()
+    benchmark_pipeline(conn)
+    conn.close()
+    
     

@@ -13,5 +13,5 @@ DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 
 # Metrics config
-METRICS_TABLE_NAME = "metrics"
-EXCEL_PATH = "test.xlsx"
+METRICS_TABLE_NAME = os.getenv("METRICS_TABLE_NAME")
+EXCEL_PATH = os.getenv("EXCEL_PATH")

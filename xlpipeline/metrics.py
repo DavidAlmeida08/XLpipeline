@@ -1,5 +1,6 @@
 from pathlib import Path
 import time
+import openpyxl
 
 import pandas as pd
 from sqlalchemy import Connection, Engine
@@ -16,7 +17,6 @@ def benchmark_pipeline(conn: Connection | Engine) -> dict[str, float]:
 
     Args:
         conn: Active database connection or engine.
-        excel_path: Path to the Excel file to read and benchmark.
 
     Returns:
         dict[str, float]: Dictionary containing execution times and throughput metrics.
@@ -44,7 +44,7 @@ def benchmark_pipeline(conn: Connection | Engine) -> dict[str, float]:
     throughput = num_rows / total_time if total_time > 0 else 0.0
 
     print("\n--- Performance Report ---")
-    print(f"File: {EXCEL_PATH.name} ({num_rows} rows, {num_cols} columns)")
+    print(f"File: {Path(EXCEL_PATH).name} ({num_rows} rows, {num_cols} columns)")
     print(f"Excel Parse Time:    {t_parse:.3f} s ({throughput_parse:.1f} rows/s)")
     print(f"Database Load Time:  {t_db:.3f} s ({throughput_db:.1f} rows/s)")
     print(f"Total Time:          {total_time:.3f} s")

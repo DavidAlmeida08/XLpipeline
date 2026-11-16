@@ -24,7 +24,7 @@ def benchmark_pipeline(conn: Connection | Engine) -> dict[str, float]:
     """
     total_start = time.perf_counter()
 
-    # 1. Measure Excel reading time
+    # Measure Excel reading time
     t0 = time.perf_counter()
     df = get_excel_data(EXCEL_PATH)
     t_parse = time.perf_counter() - t0
@@ -32,9 +32,9 @@ def benchmark_pipeline(conn: Connection | Engine) -> dict[str, float]:
     num_rows = len(df)
     num_cols = len(df.columns)
 
-    # 2. Measure database insertion time
+    # Measure database insertion time
     t0 = time.perf_counter()
-    load_dataframe_to_table(conn, METRICS_TABLE_NAME, df, chunksize=1000)
+    load_dataframe_to_table(conn, METRICS_TABLE_NAME, df, chunksize=5000)
     t_db = time.perf_counter() - t0
 
     total_time = time.perf_counter() - total_start

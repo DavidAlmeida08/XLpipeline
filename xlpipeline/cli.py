@@ -1,8 +1,5 @@
 import argparse
 from pathlib import Path
-import pandas as pd
-from xlsx2csv import Xlsx2csv
-import io
 
 from .db import *
 from .utils import *

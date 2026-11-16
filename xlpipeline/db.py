@@ -78,7 +78,7 @@ def load_dataframe_to_table(
     table_name: str,
     df: pd.DataFrame,
     if_exists: Literal["append", "replace", "fail"] = "append",
-    chunksize: int | None = 1000,
+    chunksize: int | None = 5000,
 ) -> bool:
     """Load a DataFrame into a PostgreSQL table (creates table if missing or appends if present).
     Args:
@@ -113,4 +113,5 @@ def load_dataframe_to_table(
         err_msg = getattr(error, "orig", error)
         print(f"Error loading data into table '{table_name}': {err_msg}")
         return False
+
     

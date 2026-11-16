@@ -13,7 +13,6 @@ def get_excel_data(excel_path: Path) -> pd.DataFrame:
     Returns:
         pd.DataFrame: DataFrame containing the file content contents.
     """
-
     with io.StringIO() as buffer:
         Xlsx2csv(str(excel_path), outputencoding="utf-8").convert(buffer)
         buffer.seek(0)
